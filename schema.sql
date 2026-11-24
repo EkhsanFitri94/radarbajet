@@ -68,6 +68,28 @@ alter table public.profil enable row level security;
 alter table public.kedai enable row level security;
 alter table public.harga enable row level security;
 
+-- GRANT: RLS menyaring baris, GRANT memberi akses jadual. Kedua-duanya perlu.
+-- Tanpa blok ini, PostgREST pulangkan 42501 "permission denied for table".
+grant usage on schema public to anon, authenticated;
+
+grant select on public.kedai to anon;
+grant select on public.harga to anon;
+
+grant select on public.kedai to authenticated;
+grant insert, update on public.kedai to authenticated;
+
+grant select on public.harga to authenticated;
+grant insert, delete on public.harga to authenticated;
+
+-- UPDATE profil dihadkan kepada lajur mata & email sahaja.
+-- Tanpa sekatan ini, pengguna boleh set peranan='merchant' pada diri sendiri
+-- dan terbit harga bertanda "Peniaga".
+grant select on public.profil to authenticated;
+grant insert on public.profil to authenticated;
+grant update (mata, email) on public.profil to authenticated;
+
+grant usage, select on all sequences in schema public to authenticated;
+
 -- ---- profil ----
 drop policy if exists profil_baca_sendiri  on public.profil;
 drop policy if exists profil_cipta_sendiri on public.profil;
@@ -124,7 +146,10 @@ create policy harga_padam_pelapor on public.harga for delete
 -- =====================================================================
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('resit', 'resit', false, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
-on conflict (id) do nothing;
+on conflict (id) do update
+    set public             = excluded.public,
+        file_size_limit    = excluded.file_size_limit,
+        allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists resit_muat_naik on storage.objects;
 drop policy if exists resit_baca_sendiri on storage.objects;
