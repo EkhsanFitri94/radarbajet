@@ -1,0 +1,8 @@
+streamlit>=1.36
+pandas>=2.0
+folium>=0.15
+streamlit-folium>=0.20
+streamlit-js-eval>=1.1.6
+supabase>=2.5
+google-genai>=0.8
+pillow>=10.0
