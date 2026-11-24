@@ -41,7 +41,10 @@ uji logik peta, kod warna, dan pengiraan kos perjalanan terus.
 
 1. Daftar di <https://supabase.com> → New project (pelan percuma).
 2. Buka **SQL Editor** → tampal seluruh kandungan `schema.sql` → **Run**.
-3. Buka **Project Settings → API** → salin `Project URL` dan `anon public key`.
+3. Buka **Project Settings → Data API** → salin `Project URL` (format `https://xxxx.supabase.co`).
+4. Buka **Project Settings → API Keys** → salin **publishable key** (`sb_publishable_...`).
+   Ia menggantikan "anon public key" lama. Kunci lama masih berfungsi sehingga awal 2027 —
+   kalau klien Python menolak kunci baharu, guna **legacy anon key** sementara.
 4. Cipta fail `.streamlit/secrets.toml`:
 
 ```toml
@@ -52,7 +55,8 @@ GEMINI_API_KEY = "AIza..."
 
 5. Jalankan semula. Sidebar akan berhenti tunjuk "Mod demo".
 
-> **Jangan** guna `service_role` key dalam app ini. `anon` key + RLS sudah cukup.
+> **Jangan** guna `service_role` key atau **secret key** (`sb_secret_...`) dalam app ini.
+> Publishable key + RLS sudah cukup.
 
 ---
 
@@ -108,7 +112,7 @@ dari kod:
 
 ```powershell
 $env:SUPABASE_URL   = "https://xxxx.supabase.co"
-$env:SUPABASE_KEY   = "<anon key>"
+$env:SUPABASE_KEY   = "<publishable key sb_publishable_...>"
 $env:TEST_EMAIL     = "ujian+1@domain-anda.com"
 $env:TEST_PASSWORD  = "<minima 6 aksara>"
 $env:GEMINI_API_KEY = "<kunci AI Studio>"   # opsyenal
