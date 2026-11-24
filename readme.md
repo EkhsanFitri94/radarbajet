@@ -98,12 +98,22 @@ Guna `streamlit.testing.v1.AppTest` (headless, Streamlit 1.67, pandas 3.1):
 Jalankan semula: `python test_core.py`, kemudian `python smoke_test.py` dan
 `python interaction_test.py` (perlu dependensi dalam `requirements.txt` dahulu).
 
-**Belum diuji:** laluan Supabase sebenar (perlu projek + kunci), panggilan Gemini sebenar,
-dan upload storage. Itu perlu diuji dengan akaun anda sendiri.
+**Belum diuji:** panggilan Gemini sebenar dan UI Streamlit yang bersambung ke pangkalan data
+sebenar (login + `file_uploader`).
 
-> Status setakat 24 Nov 2026: **tiada ujian hidup pernah dijalankan.** Tiada projek Supabase
-> wujud, `schema.sql` belum pernah dieksekusi, dan bucket `resit` belum dicipta. Semua ujian
-> di atas hanya meliputi mod demo dan logik tulen dalam `core.py`.
+> **Ujian hidup sudah dijalankan** pada 24 Nov 2026 terhadap projek Supabase sebenar.
+> Keputusan: **6/6 lulus**.
+>
+> | # | Ujian | Keputusan |
+> |---|---|---|
+> | 1 | Daftar pengguna melalui publishable key | lulus |
+> | 2 | Upload PNG 70 bait ke bucket peribadi | lulus |
+> | 3 | Senarai objek dalam folder `{uid}/` | lulus — 1 objek, `image/png` |
+> | 4 | Insert ke `harga` tanpa auth | lulus — ditolak `401` |
+> | 5 | Padam bukti sendiri | lulus |
+> | 6 | Senarai selepas padam | lulus — 0 objek |
+>
+> Belum diuji: insert `kedai` oleh akaun merchant, dan panggilan Gemini (tiada kunci).
 
 Untuk menutup jurang itu, `test_live.py` menguji lapan perkara terhadap projek sebenar anda
 (bucket wujud, auth, upload ke folder `{uid}/`, fail kelihatan, RLS menolak insert tanpa auth,
