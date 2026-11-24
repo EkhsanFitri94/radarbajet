@@ -152,7 +152,7 @@ def gemini_ok():
     klien = genai.Client(api_key=GEMINI)
     imej = Image.open(io.BytesIO(buat_png()))
     resp = klien.models.generate_content(
-        model="gemini-2.5-flash", contents=[imej, "Sebutkan semua teks dalam imej ini."]
+        model="gemini-3.8-flash", contents=[imej, "Sebutkan semua teks dalam imej ini."]
     )
     teks = (resp.text or "").strip()
     if not teks:

@@ -110,6 +110,11 @@ if GENAI_OK and GEMINI_API_KEY:
 
 LIVE = supabase is not None
 
+# Google menamatkan akses gemini-2.5-flash untuk pengguna baharu:
+# 404 NOT_FOUND "no longer available to new users ... use models/gemini-3.8-flash".
+# Boleh override tanpa ubah kod melalui GEMINI_MODEL dalam secrets.
+MODEL_AI = secret("GEMINI_MODEL") or "gemini-3.8-flash"
+
 
 # ---------------------------------------------------------------------------
 # 3. DATA DEMO (nama fiksyen — sengaja, supaya tiada pihak yang tercemar)
@@ -205,7 +210,7 @@ def ekstrak_resit(imej) -> dict:
     prompt = """Baca gambar resit / tanda harga ini. Pulangkan JSON SAHAJA, tiada teks lain:
 {"kedai": "nama kedai atau 'Kedai Tidak Dikenali'", "kategori": "Makanan|Runcit|Automotif|Perkakasan|Farmasi|Lain-lain", "item": "nama barang paling jelas", "harga": 0.00}
 Nilai 'harga' mesti nombor perpuluhan tanpa simbol RM."""
-    resp = ai_client.models.generate_content(model="gemini-2.5-flash", contents=[imej, prompt])
+    resp = ai_client.models.generate_content(model=MODEL_AI, contents=[imej, prompt])
     teks = (resp.text or "").replace("```json", "").replace("```", "").strip()
     data = json.loads(teks)
     data["harga"] = parse_harga(data.get("harga"))

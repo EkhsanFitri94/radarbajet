@@ -64,7 +64,8 @@ GEMINI_API_KEY = "AIza..."
 
 1. <https://aistudio.google.com/apikey> → Create API key (percuma).
 2. Masukkan dalam `secrets.toml` sebagai `GEMINI_API_KEY`.
-3. Model lalai: `gemini-2.5-flash`. Tukar dalam `ekstrak_resit()` kalau perlu.
+3. Model lalai: `gemini-3.8-flash`. `gemini-2.5-flash` sudah ditamatkan untuk pengguna
+   baharu (404 NOT_FOUND). Boleh override melalui `GEMINI_MODEL` dalam secrets.
 
 Kalau Gemini tiada, tab "Lapor harga" masih berfungsi dengan input manual + bukti gambar.
 
