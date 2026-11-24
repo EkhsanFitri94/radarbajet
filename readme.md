@@ -97,6 +97,27 @@ Jalankan semula: `python test_core.py`, kemudian `python smoke_test.py` dan
 **Belum diuji:** laluan Supabase sebenar (perlu projek + kunci), panggilan Gemini sebenar,
 dan upload storage. Itu perlu diuji dengan akaun anda sendiri.
 
+> Status setakat 24 Nov 2026: **tiada ujian hidup pernah dijalankan.** Tiada projek Supabase
+> wujud, `schema.sql` belum pernah dieksekusi, dan bucket `resit` belum dicipta. Semua ujian
+> di atas hanya meliputi mod demo dan logik tulen dalam `core.py`.
+
+Untuk menutup jurang itu, `test_live.py` menguji lapan perkara terhadap projek sebenar anda
+(bucket wujud, auth, upload ke folder `{uid}/`, fail kelihatan, RLS menolak insert tanpa auth,
+Gemini baca imej, dan pembersihan). Ia membaca kunci dari pemboleh ubah persekitaran, bukan
+dari kod:
+
+```powershell
+$env:SUPABASE_URL   = "https://xxxx.supabase.co"
+$env:SUPABASE_KEY   = "<anon key>"
+$env:TEST_EMAIL     = "ujian+1@domain-anda.com"
+$env:TEST_PASSWORD  = "<minima 6 aksara>"
+$env:GEMINI_API_KEY = "<kunci AI Studio>"   # opsyenal
+python test_live.py
+```
+
+Tiga perkara yang paling kerap gagal pada laluan upload: MIME type (`image/jpg` dan `image/heic`
+ditolak oleh `allowed_mime_types`), saiz melebihi 5 MB, dan `auth.uid()` null kerana sesi tamat.
+
 ---
 
 ## Lapisan kepercayaan data (`core.py`)
