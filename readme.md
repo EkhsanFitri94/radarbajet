@@ -143,9 +143,15 @@ Pendaftar mesti tandakan kotak pengesahan untuk teruskan.
 
 - **Jarak** = garis lurus × 1.25. Bukan laluan jalan sebenar. Untuk MVP ini cukup; untuk
   produksi guna OSRM/OpenRouteService (percuma) atau GraphHopper.
-- **Tiada deduplikasi kedai.** Dua pengguna boleh cipta kedai sama dua kali.
-- **Tiada pengesanan outlier.** Satu laporan RM1.00 akan tarik median. Tambah median-based
-  filter sebelum demo kepada peniaga.
+- **Deduplikasi kedai: ada, tetapi hanya semasa pendaftaran.** Heuristik nama
+  (SequenceMatcher ≥ 0.85, atau satu nama terkandung dalam yang lain) + radius 250 m, dan ia
+  boleh dilepasi dengan kotak pengesahan. Tiada penggabungan pendua sedia ada — kalau dua rekod
+  kedai sama sudah pun berada dalam pangkalan data, ia perlu dibetulkan manual dalam Supabase.
+- **Pengesanan outlier: ada, tetapi bukan penyelesaian lengkap.** Pagar Tukey (IQR, 3.0× apabila
+  n < 8) + pagar nisbah 3× median, dikira semula setiap kali halaman dimuatkan dan tidak disimpan.
+  Ia menapis nilai tunggal yang tersasar, tetapi **tidak** menghalang seorang pengguna menghantar
+  10 laporan untuk kedai yang sama — 10 laporan palsu yang konsisten akan menggeser median tanpa
+  satu pun kelihatan sebagai outlier.
 - **Tiada anti-spam sebenar.** Mata ganjaran mudah digaming. MVP ini bergantung pada
   sekatan "wajib ada gambar" sahaja.
 - **Skala.** Streamlit muat semula seluruh skrip setiap interaksi. Ia OK untuk <200 pengguna
