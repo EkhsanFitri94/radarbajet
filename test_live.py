@@ -41,18 +41,26 @@ GEMINI = os.environ.get("GEMINI_API_KEY", "")
 EMAIL = os.environ.get("TEST_EMAIL", "")
 PWD = os.environ.get("TEST_PASSWORD", "")
 
-lulus, gagal = [], []
+lulus, gagal, dilangkau = [], [], []
+
+
+class Langkau(Exception):
+    """Ujian tidak dapat dijalankan (bukan kegagalan)."""
 
 
 def semak(nama: str, fn):
     try:
         hasil = fn()
         lulus.append(nama)
-        print(f"  LULUS  {nama}" + (f" -> {hasil}" if hasil else ""))
+        print(f"  LULUS   {nama}" + (f" -> {hasil}" if hasil else ""))
         return hasil
+    except Langkau as e:
+        dilangkau.append((nama, str(e)))
+        print(f"  LANGKAU {nama} — {e}")
+        return None
     except Exception as e:
         gagal.append((nama, str(e)[:200]))
-        print(f"  GAGAL  {nama}\n         {str(e)[:200]}")
+        print(f"  GAGAL   {nama}\n          {str(e)[:200]}")
         return None
 
 
@@ -138,7 +146,7 @@ semak("insert tanpa auth ditolak", rls_negatif)
 print("\n[6] Gemini")
 def gemini_ok():
     if not GEMINI:
-        raise RuntimeError("GEMINI_API_KEY tidak diset (dilangkau)")
+        raise Langkau("GEMINI_API_KEY tidak diset")
     from google import genai
 
     klien = genai.Client(api_key=GEMINI)
@@ -162,7 +170,9 @@ def bersih():
 semak("padam fail ujian", bersih)
 
 print("\n" + "=" * 60)
-print(f"{len(lulus)} lulus, {len(gagal)} gagal")
+print(f"{len(lulus)} lulus, {len(gagal)} gagal, {len(dilangkau)} dilangkau")
 for nama, ralat in gagal:
-    print(f"  - {nama}: {ralat}")
+    print(f"  GAGAL   {nama}: {ralat}")
+for nama, sebab in dilangkau:
+    print(f"  LANGKAU {nama}: {sebab}")
 sys.exit(1 if gagal else 0)

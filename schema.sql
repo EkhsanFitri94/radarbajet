@@ -166,6 +166,14 @@ create policy resit_baca_sendiri on storage.objects for select
         and (storage.foldername(name))[1] = auth.uid()::text
     );
 
+-- Pengguna mesti boleh padam bukti sendiri (hak pembetulan di bawah PDPA).
+-- Tanpa polisi ini, DELETE pulang 403 AccessDenied dan fail terkunci selamanya.
+create policy resit_padam_sendiri on storage.objects for delete
+    to authenticated using (
+        bucket_id = 'resit'
+        and (storage.foldername(name))[1] = auth.uid()::text
+    );
+
 -- =====================================================================
 -- 6. TRIGGER: cipta profil automatik selepas sign_up
 --    (lebih selamat daripada insert dari klien, yang mudah gagal

@@ -67,6 +67,7 @@ on conflict (id) do update
 -- ---------------------------------------------------------------------
 drop policy if exists resit_muat_naik  on storage.objects;
 drop policy if exists resit_baca_sendiri on storage.objects;
+drop policy if exists resit_padam_sendiri on storage.objects;
 
 create policy resit_muat_naik on storage.objects for insert
     to authenticated with check (
@@ -75,6 +76,12 @@ create policy resit_muat_naik on storage.objects for insert
     );
 
 create policy resit_baca_sendiri on storage.objects for select
+    to authenticated using (
+        bucket_id = 'resit'
+        and (storage.foldername(name))[1] = auth.uid()::text
+    );
+
+create policy resit_padam_sendiri on storage.objects for delete
     to authenticated using (
         bucket_id = 'resit'
         and (storage.foldername(name))[1] = auth.uid()::text
