@@ -19,6 +19,7 @@ import json
 import os
 import re
 import sys
+import time
 from datetime import datetime
 
 import pandas as pd
@@ -110,10 +111,11 @@ if GENAI_OK and GEMINI_API_KEY:
 
 LIVE = supabase is not None
 
-# Google menamatkan akses gemini-2.5-flash untuk pengguna baharu:
-# 404 NOT_FOUND "no longer available to new users ... use models/gemini-3.8-flash".
+# Google menamatkan akses gemini-2.5-flash untuk pengguna baharu (404 NOT_FOUND).
+# Lalai 3.5-flash kerana 3.8-flash sedang pulang 503 "high demand" semasa ujian.
 # Boleh override tanpa ubah kod melalui GEMINI_MODEL dalam secrets.
-MODEL_AI = secret("GEMINI_MODEL") or "gemini-3.8-flash"
+MODEL_AI = secret("GEMINI_MODEL") or "gemini-3.5-flash"
+MODEL_SANDBACK = ["gemini-3.8-flash", "gemini-flash-latest"]
 
 
 # ---------------------------------------------------------------------------
@@ -205,15 +207,48 @@ def muat_data() -> tuple[pd.DataFrame, pd.DataFrame, bool]:
 
 
 def ekstrak_resit(imej) -> dict:
+    """Baca satu baris barang daripada resit. Buang baris jumlah secara eksplisit."""
     if ai_client is None:
         raise RuntimeError("GEMINI_API_KEY belum diset. Isi dalam Secrets dahulu.")
-    prompt = """Baca gambar resit / tanda harga ini. Pulangkan JSON SAHAJA, tiada teks lain:
-{"kedai": "nama kedai atau 'Kedai Tidak Dikenali'", "kategori": "Makanan|Runcit|Automotif|Perkakasan|Farmasi|Lain-lain", "item": "nama barang paling jelas", "harga": 0.00}
-Nilai 'harga' mesti nombor perpuluhan tanpa simbol RM."""
-    resp = ai_client.models.generate_content(model=MODEL_AI, contents=[imej, prompt])
-    teks = (resp.text or "").replace("```json", "").replace("```", "").strip()
-    data = json.loads(teks)
+
+    prompt = """Baca gambar resit / tanda harga ini. Pulangkan JSON SAHAJA, tiada markdown:
+{"kedai": "nama kedai atau 'Kedai Tidak Dikenali'", "kategori": "Makanan|Runcit|Automotif|Perkakasan|Farmasi|Lain-lain", "item": "nama SATU barang", "harga": 0.00}
+
+Peraturan:
+- Pilih SATU baris barang sahaja. Pilih yang paling mahal.
+- JANGAN ambil baris JUMLAH, TOTAL, SUBTOTAL, CUKAI, TUNAI atau BAKI.
+- 'harga' ialah harga barang itu sahaja, bukan jumlah keseluruhan.
+- Nombor sahaja, tanpa simbol RM."""
+
+    ralat_akhir = None
+    teks = ""
+    for model in [MODEL_AI] + MODEL_SANDBACK:
+        for _ in range(2):
+            try:
+                resp = ai_client.models.generate_content(model=model, contents=[imej, prompt])
+                teks = (resp.text or "").strip()
+                if teks:
+                    break
+            except Exception as e:  # 503, timeout, model ditamatkan
+                ralat_akhir = e
+                time.sleep(1.5)
+        if teks:
+            break
+
+    if not teks:
+        raise RuntimeError(f"Semua model Gemini gagal. Ralat akhir: {ralat_akhir}")
+
+    data = json.loads(teks.replace("```json", "").replace("```", "").strip())
     data["harga"] = parse_harga(data.get("harga"))
+
+    # Jaring keselamatan: kalau model tetap ambil baris jumlah, jangan simpan.
+    nama_item = str(data.get("item", "")).lower()
+    if any(k in nama_item for k in ("jumlah", "total", "subtotal", "cukai", "tunai", "baki")):
+        raise ValueError(
+            f"AI membaca '{data.get('item')}' yang kelihatan seperti baris jumlah, bukan barang. "
+            "Isi nama barang dan harga secara manual."
+        )
+
     return data
 
 

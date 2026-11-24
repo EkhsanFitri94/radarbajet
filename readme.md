@@ -64,8 +64,12 @@ GEMINI_API_KEY = "AIza..."
 
 1. <https://aistudio.google.com/apikey> → Create API key (percuma).
 2. Masukkan dalam `secrets.toml` sebagai `GEMINI_API_KEY`.
-3. Model lalai: `gemini-3.8-flash`. `gemini-2.5-flash` sudah ditamatkan untuk pengguna
-   baharu (404 NOT_FOUND). Boleh override melalui `GEMINI_MODEL` dalam secrets.
+3. Model lalai: `gemini-3.5-flash` (fallback: `gemini-3.8-flash`, `gemini-flash-latest`).
+   `gemini-2.5-flash` sudah ditamatkan untuk pengguna baharu (404 NOT_FOUND), dan
+   `gemini-3.8-flash` pulang 503 "high demand" semasa ujian 24 Nov 2026.
+   Boleh override melalui `GEMINI_MODEL` dalam secrets.
+4. Prompt menolak baris JUMLAH/TOTAL secara eksplisit, dan kod memeriksa semula nama item
+   sebelum menyimpan. Tanpa ini, setiap resit akan merekod jumlah bakul sebagai harga barang.
 
 Kalau Gemini tiada, tab "Lapor harga" masih berfungsi dengan input manual + bukti gambar.
 
@@ -114,7 +118,12 @@ sebenar (login + `file_uploader`).
 > | 5 | Padam bukti sendiri | lulus |
 > | 6 | Senarai selepas padam | lulus — 0 objek |
 >
-> Belum diuji: insert `kedai` oleh akaun merchant, dan panggilan Gemini (tiada kunci).
+> Belum diuji: insert `kedai` oleh akaun merchant, dan aliran UI Streamlit penuh.
+>
+> **Gemini (24 Nov 2026):** disahkan berfungsi dengan `gemini-3.5-flash` pada kunci baharu.
+> Imej resit sintetik (Beras RM26.00 / Ayam RM8.50 / Minyak RM27.50 / Jumlah RM62.00)
+> dibaca tepat. Prompt asal memilih baris JUMLAH (RM62.00) — sudah dibaiki supaya memilih
+> satu barang sahaja, dan diuji semula: pulang `Minyak Masak 5kg — RM27.50`.
 
 Untuk menutup jurang itu, `test_live.py` menguji lapan perkara terhadap projek sebenar anda
 (bucket wujud, auth, upload ke folder `{uid}/`, fail kelihatan, RLS menolak insert tanpa auth,
