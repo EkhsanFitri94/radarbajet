@@ -194,15 +194,30 @@ def kod_warna(kos_sebenar: float, bajet: float) -> tuple[str, str]:
 
 
 def muat_data() -> tuple[pd.DataFrame, pd.DataFrame, bool]:
-    """Pulangkan (kedai_df, harga_df, is_live)."""
+    """Pulangkan (kedai_df, harga_df, is_live).
+
+    Penting: JANGAN jatuh ke data demo hanya kerana jadual kosong. Kalau tidak,
+    projek Supabase baharu akan memaparkan kedai fiksyen seolah-olah data sebenar,
+    dan kedai pertama yang didaftarkan tidak akan muncul.
+    """
+    kolum_kedai = [
+        "id", "nama", "kategori", "lat", "lon", "status",
+        "pemilik_id", "konteks", "created_at",
+    ]
+    kolum_harga = [
+        "id", "kedai_id", "item", "kategori", "harga", "sumber",
+        "bukti_path", "dilapor_oleh", "created_at",
+    ]
+
     if LIVE:
         try:
-            kedai = pd.DataFrame(supabase.table("kedai").select("*").execute().data)
-            harga = pd.DataFrame(supabase.table("harga").select("*").execute().data)
-            if not kedai.empty and not harga.empty:
-                return kedai, harga, True
+            k = supabase.table("kedai").select("*").execute().data or []
+            h = supabase.table("harga").select("*").execute().data or []
+            kedai = pd.DataFrame(k) if k else pd.DataFrame(columns=kolum_kedai)
+            harga = pd.DataFrame(h) if h else pd.DataFrame(columns=kolum_harga)
+            return kedai, harga, True
         except Exception as e:
-            st.sidebar.warning(f"Gagal baca Supabase ({e}). Guna data demo.")
+            st.sidebar.error(f"Gagal baca Supabase: {e}")
     return pd.DataFrame(DEMO_KEDAI), pd.DataFrame(DEMO_HARGA), False
 
 
@@ -304,7 +319,15 @@ if st.session_state.user is None:
                     st.sidebar.error("Emel wajib, kata laluan minima 6 aksara.")
                 else:
                     try:
-                        res = supabase.auth.sign_up({"email": emel, "password": pwd})
+                        res = supabase.auth.sign_up(
+                            {
+                                "email": emel,
+                                "password": pwd,
+                                # peranan mesti dihantar sebagai metadata pengguna;
+                                # trigger handle_new_user() membaca raw_user_meta_data.
+                                "options": {"data": {"peranan": peranan}},
+                            }
+                        )
                         if res.user:
                             # Profil dicipta oleh trigger handle_new_user() dalam schema.sql
                             st.sidebar.success("Akaun dicipta. Sila log masuk.")
@@ -516,7 +539,35 @@ with tab_lapor:
         st.caption("Setiap laporan mesti ada bukti gambar. Tanpa bukti, data jadi sampah dan semua orang berhenti percaya.")
 
         if df_kedai.empty:
-            st.error("Tiada senarai kedai. Sila isi jadual `kedai` dahulu.")
+            st.warning("Belum ada kedai dalam pangkalan data. Cipta yang pertama dahulu.")
+            with st.form("kedai_pertama"):
+                nama0 = st.text_input("Nama kedai")
+                kat0 = st.selectbox(
+                    "Kategori",
+                    ["Runcit", "Makanan", "Automotif", "Perkakasan", "Farmasi", "Lain-lain"],
+                )
+                cipta = st.form_submit_button("Cipta kedai", type="primary")
+            if cipta:
+                if not nama0.strip():
+                    st.error("Nama kedai wajib.")
+                elif not LIVE:
+                    st.info("Mod demo: pendaftaran dilumpuhkan.")
+                else:
+                    try:
+                        supabase.table("kedai").insert(
+                            {
+                                "nama": nama0.strip(),
+                                "kategori": kat0,
+                                "lat": lat0,
+                                "lon": lon0,
+                                "status": "unclaimed",
+                                "pemilik_id": st.session_state.user.id,
+                            }
+                        ).execute()
+                        st.success("Kedai dicipta. Memuat semula…")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Gagal cipta kedai: {e}")
             st.stop()
 
         pilihan_kedai = {f"{r['nama']} ({r['kategori']})": int(r["id"]) for _, r in df_kedai.iterrows()}
