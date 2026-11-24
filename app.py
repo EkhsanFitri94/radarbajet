@@ -98,7 +98,26 @@ GEMINI_API_KEY = secret("GEMINI_API_KEY")
 supabase = None
 if SUPA_OK and SUPABASE_URL and SUPABASE_KEY:
     try:
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        # Klien mesti kekal merentas rerun Streamlit. Kalau dicipta semula setiap kali,
+        # sesi log masuk hilang dan semua tulisan dihantar sebagai peranan 'anon'
+        # (itulah punca ralat 42501 "permission denied for table kedai").
+        if "sb_client" not in st.session_state:
+            st.session_state["sb_client"] = create_client(SUPABASE_URL, SUPABASE_KEY)
+        supabase = st.session_state["sb_client"]
+
+        # Pulihkan sesi daripada token tersimpan kalau klien baharu (contoh: app restart)
+        try:
+            ada_sesi = supabase.auth.get_session() is not None
+        except Exception:
+            ada_sesi = False
+        if not ada_sesi and st.session_state.get("sb_access"):
+            try:
+                supabase.auth.set_session(
+                    st.session_state["sb_access"], st.session_state["sb_refresh"]
+                )
+            except Exception:
+                st.session_state.pop("sb_access", None)
+                st.session_state.pop("sb_refresh", None)
     except Exception as e:
         st.sidebar.error(f"Supabase gagal disambung: {e}")
 
@@ -339,6 +358,11 @@ if st.session_state.user is None:
                     res = supabase.auth.sign_in_with_password({"email": emel, "password": pwd})
                     if res.user:
                         st.session_state.user = res.user
+                        try:
+                            st.session_state["sb_access"] = res.session.access_token
+                            st.session_state["sb_refresh"] = res.session.refresh_token
+                        except Exception:
+                            pass
                         p = supabase.table("profil").select("*").eq("id", res.user.id).execute()
                         if p.data:
                             st.session_state.peranan = p.data[0].get("peranan", "consumer")
@@ -359,6 +383,8 @@ else:
             pass
         st.session_state.user = None
         st.session_state.peranan = "guest"
+        st.session_state.pop("sb_access", None)
+        st.session_state.pop("sb_refresh", None)
         st.rerun()
 
 
